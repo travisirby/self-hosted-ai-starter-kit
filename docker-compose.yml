@@ -19,6 +19,7 @@ x-n8n: &service-n8n
     - N8N_PERSONALIZATION_ENABLED=false
     - N8N_ENCRYPTION_KEY
     - N8N_USER_MANAGEMENT_JWT_SECRET
+    - WEBHOOK_URL=https://n8n.parentwithme.ai/
   links:
     - postgres
 
@@ -52,6 +53,8 @@ services:
       - POSTGRES_USER
       - POSTGRES_PASSWORD
       - POSTGRES_DB
+    ports:
+      - 5432:5432
     volumes:
       - postgres_storage:/var/lib/postgresql/data
     healthcheck:
@@ -125,3 +128,31 @@ services:
     <<: *init-ollama
     depends_on:
       - ollama-gpu
+
+  retool:
+    image: tryretool/backend:latest
+    container_name: retool
+    networks: ['demo']
+    ports:
+      - "3000:3000"  # Exposes Retool’s web interface on localhost:3000
+    depends_on:
+      - postgres
+    environment:
+      # Required: set the environment to production (or development, as appropriate)
+      - NODE_ENV=production
+      # Set your database connection URL – here we use the postgres service defined below.
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/retool
+      
+      # Provide your Retool license key (replace with your actual key)
+      - LICENSE_KEY=SSOP_6e3312c2-f087-4077-b670-bef70435fad4
+      
+      # Optionally, you may set the host and port Retool should listen on.
+      - APP_HOST=0.0.0.0
+      - APP_PORT=3000a
+      
+      - JWT_SECRET=${RETOOL_JWT_SECRET}
+      # (Optional) Additional environment variables (like SMTP settings) can be added here.
+      # - SMTP_HOST=smtp.example.com
+      # - SMTP_PORT=587
+      # - SMTP_USER=your_smtp_username
+      # - SMTP_PASSWORD=your_smtp_password
